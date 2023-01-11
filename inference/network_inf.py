@@ -11,26 +11,26 @@ import torch.nn as nn
 import torch
 
 
-def load_features(args):
-    if args.arch == 'iresnet34':
+def load_features(resnet_backbone, embedding_size):
+    if resnet_backbone == 'iresnet34':
         features = iresnet.iresnet34(
             pretrained=False,
-            num_classes=args.embedding_size,
+            num_classes=embedding_size,
         )
-    elif args.arch == 'iresnet18':
+    elif resnet_backbone == 'iresnet18':
         features = iresnet.iresnet18(
             pretrained=False,
-            num_classes=args.embedding_size,
+            num_classes=embedding_size,
         )
-    elif args.arch == 'iresnet50':
+    elif resnet_backbone == 'iresnet50':
         features = iresnet.iresnet50(
             pretrained=False,
-            num_classes=args.embedding_size,
+            num_classes=embedding_size,
         )
-    elif args.arch == 'iresnet100':
+    elif resnet_backbone == 'iresnet100':
         features = iresnet.iresnet100(
             pretrained=False,
-            num_classes=args.embedding_size,
+            num_classes=embedding_size,
         )
     else:
         raise ValueError()
@@ -38,9 +38,9 @@ def load_features(args):
 
 
 class NetworkBuilder_inf(nn.Module):
-    def __init__(self, args):
+    def __init__(self, resnet_backbone, embedding_size):
         super(NetworkBuilder_inf, self).__init__()
-        self.features = load_features(args)
+        self.features = load_features(resnet_backbone, embedding_size)
 
     def forward(self, input):
         # add Fp, a pose feature
@@ -48,13 +48,10 @@ class NetworkBuilder_inf(nn.Module):
         return x
 
 
-def load_dict_inf(args, model):
-    if os.path.isfile(args.resume):
-        cprint('=> loading pth from {} ...'.format(args.resume))
-        if args.cpu_mode:
-            checkpoint = torch.load(args.resume, map_location=torch.device("cpu"))
-        else:
-            checkpoint = torch.load(args.resume)
+def load_dict_inf(model_path, model):
+    if os.path.isfile(model_path):
+        cprint('=> loading pth from {} ...'.format(model_path))
+        checkpoint = torch.load(model_path)
         _state_dict = clean_dict_inf(model, checkpoint['state_dict'])
         model_dict = model.state_dict()
         model_dict.update(_state_dict)
@@ -63,7 +60,7 @@ def load_dict_inf(args, model):
         del checkpoint
         del _state_dict
     else:
-        sys.exit("=> No checkpoint found at '{}'".format(args.resume))
+        sys.exit("=> No checkpoint found at '{}'".format(model_path))
     return model
 
 
@@ -88,8 +85,8 @@ def clean_dict_inf(model, state_dict):
     return _state_dict
 
 
-def builder_inf(args):
-    model = NetworkBuilder_inf(args)
+def builder_inf(model_path, resnet_backbone='iresnet100', embedding_size=512):
+    model = NetworkBuilder_inf(resnet_backbone, embedding_size)
     # Used to run inference
-    model = load_dict_inf(args, model)
+    model = load_dict_inf(model_path, model)
     return model
